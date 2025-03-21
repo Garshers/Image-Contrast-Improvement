@@ -23,16 +23,22 @@ function histogram_operations()
     end
     
     stretched_img = histogram_stretch(img);
+    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(stretched_img);
     stretched_filename = [filename(1:end-4) '_stretched' '.png'];
     imwrite(stretched_img, fullfile(output_folder, stretched_filename));
+    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', stretched_filename, k1, k2, k3, k4, min_ox, max_ox);
     
     equalized_img = histeq(img);
+    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(equalized_img);
     equalized_filename = [filename(1:end-4) '_equalized' '.png'];
     imwrite(equalized_img, fullfile(output_folder, equalized_filename));
+    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', equalized_filename, k1, k2, k3, k4, min_ox, max_ox);
     
     clipped_stretched_img = histogram_stretch_with_clipping(img, 0.02);
+    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(clipped_stretched_img);
     clipped_stretched_filename = [filename(1:end-4) '_clipped_stretched' '.png'];
     imwrite(clipped_stretched_img, fullfile(output_folder, clipped_stretched_filename));
+    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', clipped_stretched_filename, k1, k2, k3, k4, min_ox, max_ox);
 end
 
 function stretched_img = histogram_stretch(img)
@@ -65,4 +71,25 @@ function clipped_stretched_img = histogram_stretch_with_clipping(img, clip_perce
     
     % Perform histogram stretching on the clipped image
     clipped_stretched_img = histogram_stretch(clipped_img);
+end
+
+function [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(img)
+    if size(img, 3) == 3
+        img = rgb2gray(img);
+    end
+    img_double = double(img);
+    
+
+    [M, N] = size(img);
+    
+    % Calculate min(Ox) and max(Ox)
+    min_ox = min(img_double(:));
+    max_ox = max(img_double(:));
+    
+    % Calculate Michelson variables
+    k1 = (max_ox - min_ox) / 255;
+    mean_val = mean(img_double(:));
+    k2 = (max_ox - min_ox) / mean_val;
+    k3 = (max_ox - min_ox) / (min_ox + max_ox);
+    k4 = (4 / (255^2 * M * N)) * sum((img_double(:) - mean_val).^2);
 end
