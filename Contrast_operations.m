@@ -15,29 +15,37 @@ function histogram_operations()
         mkdir(output_folder);
     end
 
-    copyfile(fullfile(pathname, filename), fullfile(output_folder, filename)); % save oryginal
-
     % Convert the image to grayscale if it is a color image
     if size(img, 3) == 3
         img = rgb2gray(img);
     end
+
+    img = img + 0;
+
+    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(img);
+    imwrite(img, fullfile(output_folder, filename));                            % save oryginal
+    generate_histograms(img, filename, output_folder);                          % save histogram
+    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', filename, k1, k2, k3, k4, min_ox, max_ox);
     
     stretched_img = histogram_stretch(img);
     [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(stretched_img);
     stretched_filename = [filename(1:end-4) '_stretched' '.png'];
-    imwrite(stretched_img, fullfile(output_folder, stretched_filename));
+    imwrite(stretched_img, fullfile(output_folder, stretched_filename));        % save img
+    generate_histograms(stretched_img, stretched_filename, output_folder);      % save histogram
     fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', stretched_filename, k1, k2, k3, k4, min_ox, max_ox);
     
     equalized_img = histeq(img);
     [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(equalized_img);
     equalized_filename = [filename(1:end-4) '_equalized' '.png'];
-    imwrite(equalized_img, fullfile(output_folder, equalized_filename));
+    imwrite(equalized_img, fullfile(output_folder, equalized_filename));        % save img
+    generate_histograms(equalized_img, equalized_filename, output_folder);      % save histogram
     fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', equalized_filename, k1, k2, k3, k4, min_ox, max_ox);
     
     clipped_stretched_img = histogram_stretch_with_clipping(img, 0.02);
     [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(clipped_stretched_img);
     clipped_stretched_filename = [filename(1:end-4) '_clipped_stretched' '.png'];
-    imwrite(clipped_stretched_img, fullfile(output_folder, clipped_stretched_filename));
+    imwrite(clipped_stretched_img, fullfile(output_folder, clipped_stretched_filename));   % save img
+    generate_histograms(clipped_stretched_img, clipped_stretched_filename, output_folder); % save histogram
     fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', clipped_stretched_filename, k1, k2, k3, k4, min_ox, max_ox);
 end
 
@@ -78,7 +86,6 @@ function [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(img)
         img = rgb2gray(img);
     end
     img_double = double(img);
-    
 
     [M, N] = size(img);
     
@@ -93,3 +100,42 @@ function [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(img)
     k3 = (max_ox - min_ox) / (min_ox + max_ox);
     k4 = (4 / (255^2 * M * N)) * sum((img_double(:) - mean_val).^2);
 end
+
+function generate_histograms(img, filename, output_folder)
+    figure;
+    imhist(img);
+    title(['Histogram: ' filename]);
+    saveas(gcf, fullfile(output_folder, [filename(1:end-4) '_hist.png']));
+    close(gcf);
+end
+
+function modify_image_pixels() % Change one pixel to black and one to white
+    % Select an image file
+    [filename, pathname] = uigetfile({'*.bmp;*.tiff;*.png;*.jpg'}, 'Select image file');
+    if isequal(filename, 0)
+        disp('User canceled file selection.');
+        return;
+    end
+    
+    % Read the image
+    img = imread(fullfile(pathname, filename));
+    
+    % Convert the image to grayscale if it is a color image
+    if size(img, 3) == 3
+        img = rgb2gray(img);
+    end
+
+    img = img + 0;
+    
+    img(1, 1) = 0;
+    img(1, 2) = 255;
+    
+    % Save the modified image
+    [~, name, ext] = fileparts(filename);
+    new_filename = [name, '_modified', ext];
+    imwrite(img, fullfile(pathname, new_filename));
+    disp(['Modified image saved as: ', new_filename]);
+end
+
+histogram_operations();
+%modify_image_pixels();
