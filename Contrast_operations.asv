@@ -20,19 +20,33 @@ function histogram_operations()
         img = rgb2gray(img);
     end
 
-    img = img + 70;
+    img = img + 0;
 
-    % Saving images and counting coefficients
-    format(img, output_folder, filename, '');
-
+    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(img);
+    imwrite(img, fullfile(output_folder, filename));                            % save oryginal
+    generate_histograms(img, filename, output_folder);                          % save histogram
+    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', filename, k1, k2, k3, k4, min_ox, max_ox);
+    
     stretched_img = histogram_stretch(img);
-    format(stretched_img, output_folder, filename, '_stretched');
-
+    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(stretched_img);
+    stretched_filename = [filename(1:end-4) '_stretched' '.png'];
+    imwrite(stretched_img, fullfile(output_folder, stretched_filename));        % save img
+    generate_histograms(stretched_img, stretched_filename, output_folder);      % save histogram
+    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', stretched_filename, k1, k2, k3, k4, min_ox, max_ox);
+    
     equalized_img = histeq(img);
-    format(equalized_img, output_folder, filename, '_equalized');
-
+    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(equalized_img);
+    equalized_filename = [filename(1:end-4) '_equalized' '.png'];
+    imwrite(equalized_img, fullfile(output_folder, equalized_filename));        % save img
+    generate_histograms(equalized_img, equalized_filename, output_folder);      % save histogram
+    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', equalized_filename, k1, k2, k3, k4, min_ox, max_ox);
+    
     clipped_stretched_img = histogram_stretch_with_clipping(img, 0.02);
-    format(clipped_stretched_img, output_folder, filename, '_clipped_stretched');
+    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(clipped_stretched_img);
+    clipped_stretched_filename = [filename(1:end-4) '_clipped_stretched' '.png'];
+    imwrite(clipped_stretched_img, fullfile(output_folder, clipped_stretched_filename));   % save img
+    generate_histograms(clipped_stretched_img, clipped_stretched_filename, output_folder); % save histogram
+    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', clipped_stretched_filename, k1, k2, k3, k4, min_ox, max_ox);
 end
 
 function stretched_img = histogram_stretch(img)
@@ -123,13 +137,7 @@ function modify_image_pixels() % Change one pixel to black and one to white
     disp(['Modified image saved as: ', new_filename]);
 end
 
-function [k1, k2, k3, k4, min_ox, max_ox] = format(img, output_folder, filename, prefix)
-    [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(img);
-    filename = [filename(1:end-4) prefix '.png'];
-    imwrite(img, fullfile(output_folder, filename)); % save img
-    generate_histograms(img, filename, output_folder); % save histogram
-    fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', filename, k1, k2, k3, k4, min_ox, max_ox);
-end
+function [k1, k2, k3, k4, min_ox, max_ox] = format(img, )
 
 histogram_operations();
 %modify_image_pixels();
