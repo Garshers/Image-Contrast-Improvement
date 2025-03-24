@@ -20,7 +20,7 @@ function histogram_operations()
         img = rgb2gray(img);
     end
 
-    img = img + 70;
+    img = img + 0;
 
     % Saving images and counting coefficients
     format(img, output_folder, filename, '');
@@ -31,7 +31,7 @@ function histogram_operations()
     equalized_img = histeq(img);
     format(equalized_img, output_folder, filename, '_equalized');
 
-    clipped_stretched_img = histogram_stretch_with_clipping(img, 0.02);
+    clipped_stretched_img = histogram_stretch_with_clipping(img);
     format(clipped_stretched_img, output_folder, filename, '_clipped_stretched');
 end
 
@@ -44,26 +44,11 @@ function stretched_img = histogram_stretch(img)
     stretched_img = uint8(255 * (double(img) - min_val) / (max_val - min_val));
 end
 
-function clipped_stretched_img = histogram_stretch_with_clipping(img, clip_percent)
-    % Calculate the histogram of the image
-    hist_counts = imhist(img);
-    
-    % Calculate the total number of pixels
-    total_pixels = sum(hist_counts);
-    
-    % Calculate the number of pixels to clip on each side
-    clip_count = round(total_pixels * clip_percent);
-    
-    % Find the lower and upper clipping values
-    lower_clip = find(cumsum(hist_counts) >= clip_count, 1, 'first') - 1;
-    upper_clip = find(cumsum(hist_counts) <= total_pixels - clip_count, 1, 'last') - 1;
-    
+function clipped_stretched_img = histogram_stretch_with_clipping(img)
     % Clip the image values
-    clipped_img = img;
-    clipped_img(clipped_img < lower_clip) = lower_clip;
-    clipped_img(clipped_img > upper_clip) = upper_clip;
+    clipped_img = histeq(img);
     
-    % Perform histogram stretching on the clipped image
+    % Histogram stretching on the clipped image
     clipped_stretched_img = histogram_stretch(clipped_img);
 end
 
@@ -123,7 +108,7 @@ function modify_image_pixels() % Change one pixel to black and one to white
     disp(['Modified image saved as: ', new_filename]);
 end
 
-function [k1, k2, k3, k4, min_ox, max_ox] = format(img, output_folder, filename, prefix)
+function format(img, output_folder, filename, prefix)
     [k1, k2, k3, k4, min_ox, max_ox] = calculate_coefficients(img);
     filename = [filename(1:end-4) prefix '.png'];
     imwrite(img, fullfile(output_folder, filename)); % save img
@@ -131,5 +116,67 @@ function [k1, k2, k3, k4, min_ox, max_ox] = format(img, output_folder, filename,
     fprintf('Coefficients for %s:\nk1 = %.4f\nk2 = %.4f\nk3 = %.4f\nk4 = %.4f\nmin(Ox) = %d\nmax(Ox) = %d\n\n', filename, k1, k2, k3, k4, min_ox, max_ox);
 end
 
-histogram_operations();
+function local_contrast_operation()
+    % Select an image
+    [filename, pathname] = uigetfile({'*.bmp;*.tiff;*'}, 'Select original image (BMP or TIFF)');
+    if isequal(filename, 0)
+        fprintf('User cancelled file selection.\n');
+        return;
+    end
+
+    % Read the image from the selected file
+    img = imread(fullfile(pathname, filename));
+
+    % Create the output folder if it doesn't exist
+    output_folder = fullfile(pathname, 'latex_data_POC_lab5', 'Task2');
+    if ~exist(output_folder, 'dir')
+        mkdir(output_folder);
+    end
+
+    % Convert to grayscale if it's a color image
+    if size(img, 3) == 3
+        img = rgb2gray(img);
+    end
+
+    img = img + 0;
+
+    % Calculate block dimensions
+    n = 4;
+    [height, width] = size(img);
+    n_height = floor(height / n);
+    n_width = floor(width / n);
+
+    % Iterate over blocks
+    for i = 1:n
+        for j = 1:n
+            % Calculate block coordinates
+            row_start = (i - 1) * n_height + 1;
+            row_end = min(i * n_height, height); % Prevent out-of-bounds access
+            col_start = (j - 1) * n_width + 1;
+            col_end = min(j * n_width, width); % Prevent out-of-bounds access
+
+            % Extract block
+            block = img(row_start:row_end, col_start:col_end);
+
+            % Process block
+            processed_block = histogram_stretch_with_clipping(block);
+
+            % Assambly
+            end_img(row_start:row_end, col_start:col_end) = processed_block;
+        end
+    end
+
+    % Format given image
+    format(end_img, output_folder, filename, '_local_clipped_stretched');
+
+    % CLAHE Algorythm
+    clahe_image = adapthisteq(img,'clipLimit',0.02,'Distribution','rayleigh');
+    format(clahe_image, output_folder, filename, '_CLACHE_p1');
+
+    clahe_image = adapthisteq(img,'NumTiles',[8 8],'ClipLimit',0.05);
+    format(clahe_image, output_folder, filename, '_CLACHE_p2');
+end
+
 %modify_image_pixels();
+%histogram_operations();
+local_contrast_operation();
